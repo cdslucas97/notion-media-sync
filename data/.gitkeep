@@ -1,0 +1,3 @@
+# Esta pasta guarda os arquivos .csv exportados do IMDb.
+# Os .csv não são versionados (são dados pessoais), mas a pasta é mantida no repositório.
+# Salve aqui suas exportações do IMDb — o script usa sempre a mais recente.
