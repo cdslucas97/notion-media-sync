@@ -20,6 +20,16 @@ import requests
 API_BASE = "https://api.themoviedb.org/3"
 
 
+class TMDBAuthError(Exception):
+    """
+    Erro de autenticação na API do TMDB (HTTP 401): chave inválida ou não autorizada.
+
+    É levantado em vez de encerrar o processo na hora, para que o chamador decida o
+    que fazer: abortar cedo com mensagem clara (validação no início) ou interromper
+    o laço preservando o log do que já foi processado.
+    """
+
+
 class TMDBClient:
     """Encapsula as buscas de filmes e séries na API do TMDB."""
 
@@ -27,12 +37,28 @@ class TMDBClient:
         self.api_key = api_key
         self.idioma = idioma
 
+    def verificar_chave(self) -> None:
+        """
+        Valida a chave do TMDB logo no início do script (fail-fast).
+
+        Faz uma chamada leve ao endpoint `/configuration` (que exige autenticação).
+        Se a chave for inválida ou não autorizada, `_get` levanta TMDBAuthError;
+        aqui isso vira uma mensagem clara e o encerramento imediato — antes de
+        começar a processar item por item, em vez de morrer no meio do laço.
+        """
+        try:
+            self._get(f"{API_BASE}/configuration", {})
+        except TMDBAuthError as erro:
+            print(f"❌ ERRO: {erro}")
+            sys.exit(1)
+
     def _get(self, url: str, params: dict, max_tentativas: int = 4) -> dict:
         """
         Faz um GET na API do TMDB com novas tentativas automáticas e devolve o JSON.
 
-        - Em HTTP 401, a chave é inválida: encerra com mensagem clara (em vez de
-          fazer todos os itens parecerem "não localizados").
+        - Em HTTP 401, a chave é inválida: levanta TMDBAuthError com mensagem clara
+          (em vez de fazer todos os itens parecerem "não localizados"). Quem chama
+          decide se aborta na hora ou interrompe preservando o log parcial.
         - Em HTTP 429 (limite de taxa), respeita o cabeçalho `Retry-After`.
         - Em erros 5xx (falha temporária), aguarda com backoff exponencial.
         """
@@ -43,9 +69,10 @@ class TMDBClient:
             resposta = requests.get(url, params=params, timeout=30)
 
             if resposta.status_code == 401:
-                print("❌ ERRO: a chave do TMDB (TMDB_API_KEY) é inválida ou não foi autorizada.")
-                print("   Confira a chave em https://www.themoviedb.org/settings/api")
-                sys.exit(1)
+                raise TMDBAuthError(
+                    "a chave do TMDB (TMDB_API_KEY) é inválida ou não foi autorizada.\n"
+                    "   Confira a chave em https://www.themoviedb.org/settings/api"
+                )
 
             if resposta.status_code == 429:
                 espera = int(resposta.headers.get("Retry-After", 2))

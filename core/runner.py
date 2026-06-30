@@ -19,6 +19,7 @@ regra de negócio específica, e toda a "mecânica" do laço fica aqui.
 import time
 
 from core import cli, notion
+from core.tmdb import TMDBAuthError
 
 # Status possíveis devolvidos por `processar_item`.
 SUCESSO = "SUCCESS"
@@ -48,12 +49,19 @@ def processar_base(client: notion.NotionClient, processar_item, *, pausar: bool,
     sucessos_log = []
     falhas_log = []
 
-    if lista_ids:
-        _rota_lista_especifica(client, processar_item, lista_ids,
-                               nome_entidade, estado, sucessos_log, falhas_log)
-    else:
-        _rota_base_completa(client, processar_item, pausar, tamanho_bloco,
-                            nome_entidade, coluna_titulo, estado, sucessos_log, falhas_log, total)
+    # As listas de log são mutadas dentro das rotas; se um erro de autenticação do
+    # TMDB interromper o laço no meio, o que já foi acumulado é preservado e ainda
+    # vai para o arquivo de log (em vez de o script morrer sem registrar nada).
+    try:
+        if lista_ids:
+            _rota_lista_especifica(client, processar_item, lista_ids,
+                                   nome_entidade, estado, sucessos_log, falhas_log)
+        else:
+            _rota_base_completa(client, processar_item, pausar, tamanho_bloco,
+                                nome_entidade, coluna_titulo, estado, sucessos_log, falhas_log, total)
+    except TMDBAuthError as erro:
+        print(f"\n🛑 INTERROMPIDO: {erro}")
+        print("   O log do que já foi processado até aqui será salvo mesmo assim.")
 
     return estado["sucessos"], estado["inalterados"], sucessos_log, falhas_log
 

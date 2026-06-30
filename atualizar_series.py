@@ -269,6 +269,9 @@ def main() -> None:
     csv_db = csv_loader.carregar_csv(csv_loader.descobrir_arquivo_csv())
     client = notion.NotionClient(config.NOTION_DB_SERIES)
     tmdb = TMDBClient(config.TMDB_API_KEY)
+    # Valida a chave do TMDB já no início: falha cedo e com mensagem clara, em vez de
+    # morrer no meio do laço (este script depende do TMDB para os dados das séries).
+    tmdb.verificar_chave()
 
     # PASSO 1: oferecer a adição de itens novos do CSV.
     total_base, adicionados_log, sync_falhas = _sincronizar(client, tmdb, csv_db, passo=1)

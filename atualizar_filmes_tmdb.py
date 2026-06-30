@@ -120,6 +120,8 @@ def main() -> None:
 
     client = notion.NotionClient(config.NOTION_DB_MOVIES)
     tmdb = TMDBClient(config.TMDB_API_KEY)
+    # Valida a chave do TMDB já no início (este script de backup usa o TMDB como fonte).
+    tmdb.verificar_chave()
     processar_item = construir_processador(client, tmdb, modo)
 
     sucessos, inalterados, sucessos_log, falhas = runner.processar_base(

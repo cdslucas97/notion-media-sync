@@ -13,9 +13,12 @@ PASTA_LOGS = "logs"
 
 
 def salvar_execucao(titulo: str, sucessos_log: list, falhas_log: list,
-                    prefixo: str = "execucao", adicionados_log: list = None) -> str | None:
+                    prefixo: str = "execucao", adicionados_log: list = None) -> str:
     """
-    Grava o log da execução e devolve o caminho do arquivo (ou None se nada houve).
+    Grava o log da execução e devolve o caminho do arquivo.
+
+    Um arquivo é gravado SEMPRE, mesmo quando nada mudou (registro da rodada);
+    nesse caso, o log apenas anota que todos os itens já estavam em dia.
 
     `prefixo` vai no início do nome do arquivo para identificar de cara o tipo de
     execução (ex.: "filmes", "series"). `adicionados_log` é a lista de nomes dos itens
@@ -23,8 +26,6 @@ def salvar_execucao(titulo: str, sucessos_log: list, falhas_log: list,
     dos itens atualizados; `falhas_log`, uma lista de strings descrevendo cada falha.
     """
     adicionados_log = adicionados_log or []
-    if not adicionados_log and not sucessos_log and not falhas_log:
-        return None
 
     os.makedirs(PASTA_LOGS, exist_ok=True)
     agora = datetime.now()
@@ -34,6 +35,11 @@ def salvar_execucao(titulo: str, sucessos_log: list, falhas_log: list,
         arquivo.write(f"{titulo}\n")
         arquivo.write(f"Execução em {agora:%d/%m/%Y %H:%M:%S}\n")
         arquivo.write("=" * 60 + "\n\n")
+
+        # Rodada sem nenhum evento: registra mesmo assim, deixando claro o desfecho.
+        if not adicionados_log and not sucessos_log and not falhas_log:
+            arquivo.write("Nenhuma alteração: todos os itens já estavam em dia.\n")
+            return caminho
 
         if adicionados_log:
             arquivo.write(f"ADICIONADOS ({len(adicionados_log)})\n")
