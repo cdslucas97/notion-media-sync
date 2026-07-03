@@ -222,3 +222,14 @@ __marimo__/
 
 # Logs de execução gerados pelos scripts
 logs/
+
+# --- Notion Media Sync: estado local e credenciais das fases Trakt+ ---
+# Pasta data/ inteira: exports, backups JSON, auditoria, timestamps de sync
+data/
+
+# Token OAuth do Trakt (qualquer convenção de nome que a Fase 1A adotar)
+.trakt_token*
+*.token.json
+
+# Configuração local do Claude Code (permissões desta máquina)
+.claude/settings.local.json
